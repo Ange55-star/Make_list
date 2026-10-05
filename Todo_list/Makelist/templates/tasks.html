@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Ce conteneur force le centrage absolu sur l'écran -->
+<div class="flex justify-center items-center min-h-[80vh] w-full">
+
+    <div class="w-full max-w-xl bg-base-100 p-6 rounded-2xl shadow-xl">
+        <h2 class="text-xl font-bold mb-4 text-primary">➕ Créer une nouvelle tâche</h2>
+
+        <form method="POST" action="{% url 'add_task' %}" class="space-y-4">
+            {% csrf_token %}
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Titre de la tâche</span>
+                </label>
+                {{ form.title }}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Description (Optionnelle)</span>
+                </label>
+                {{ form.description }}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Date et heure de l'alarme</span>
+                </label>
+                {{ form.due_date }}
+            </div>
+
+            <div class="form-control flex flex-row items-center gap-3 py-2">
+                {{ form.completed }}
+                <span class="label-text font-semibold">Marquer comme terminée</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full mt-4">Ajouter la tâche</button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
