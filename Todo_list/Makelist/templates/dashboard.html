@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-8">
+    <div>
+        <p class="text-sm uppercase tracking-wide text-indigo-600 font-semibold">Tableau de bord</p>
+        <h1 class="text-3xl font-bold">Bienvenue, {{ user.username }}</h1>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl shadow p-5">
+            <p class="text-sm text-slate-500">Tâches totales</p>
+            <h2 class="text-3xl font-bold mt-2">{{ total_tasks }}</h2>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5">
+            <p class="text-sm text-slate-500">Complétées</p>
+            <h2 class="text-3xl font-bold mt-2 text-emerald-600">{{ completed_tasks }}</h2>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5">
+            <p class="text-sm text-slate-500">En attente</p>
+            <h2 class="text-3xl font-bold mt-2 text-amber-600">{{ pending_tasks }}</h2>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5">
+            <p class="text-sm text-slate-500">Taux de finition</p>
+            <h2 class="text-3xl font-bold mt-2 text-indigo-600">{{ completion_rate }}%</h2>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl font-bold mb-4">Minuteur Pomodoro</h2>
+            <div class="text-center">
+                <div id="pomodoro-time" class="text-5xl font-bold text-indigo-600 mb-4">25:00</div>
+                <div class="flex justify-center gap-3 mb-4">
+                    <button id="start-pomodoro" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500">Démarrer</button>
+                    <button id="pause-pomodoro" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">Pause</button>
+                    <button id="reset-pomodoro" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400">Reset</button>
+                </div>
+                <p id="pomodoro-status" class="text-slate-500">Prêt pour une session de concentration.</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl font-bold mb-4">Rappels</h2>
+            <div class="space-y-3">
+                {% for task in tasks %}
+                    {% if task.due_date and not task.completed %}
+                        <div class="border rounded-lg p-3">
+                            <p class="font-semibold">{{ task.title }}</p>
+                            <p class="text-sm text-slate-500">Échéance : {{ task.due_date|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    {% endif %}
+                {% empty %}
+                    <p class="text-slate-500">Aucun rappel actif pour le moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-xl font-bold mb-4">Progression</h2>
+        <div class="space-y-4">
+            {% for item in chart_data %}
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>{{ item.label }}</span>
+                        <span>{{ item.value }}%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3">
+                        <div class="bg-indigo-600 h-3 rounded-full" style="width: {{ item.value }}%"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Tâches récentes</h2>
+                <a href="{% url 'task_list' %}" class="text-sm text-indigo-600">Voir tout</a>
+            </div>
+            <div class="space-y-3">
+                {% for task in tasks %}
+                    <div class="border rounded-lg p-3">
+                        <p class="font-semibold">{{ task.title }}</p>
+                        <p class="text-sm text-slate-500">{{ task.due_date|default:"Sans date" }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-500">Aucune tâche pour le moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Notes rapides</h2>
+                <a href="{% url 'note_list' %}" class="text-sm text-indigo-600">Voir tout</a>
+            </div>
+            <div class="space-y-3">
+                {% for note in notes %}
+                    <div class="border rounded-lg p-3">
+                        <p class="font-semibold">{{ note.title }}</p>
+                        <p class="text-sm text-slate-500">{{ note.content|truncatechars:80 }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-500">Aucune note pour le moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const pomodoroTime = document.getElementById('pomodoro-time');
+const statusText = document.getElementById('pomodoro-status');
+const startButton = document.getElementById('start-pomodoro');
+const pauseButton = document.getElementById('pause-pomodoro');
+const resetButton = document.getElementById('reset-pomodoro');
+
+let totalSeconds = 25 * 60;
+let timer = null;
+let isRunning = false;
+
+function formatTime(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function updateDisplay() {
+    pomodoroTime.textContent = formatTime(totalSeconds);
+}
+
+function playAlarm() {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 880;
+    gainNode.gain.value = 0.06;
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start();
+
+    setTimeout(() => {
+        oscillator.stop();
+        context.close();
+    }, 1500);
+}
+
+function stopTimer() {
+    if (timer) {
+        clearInterval(timer);
+        timer = null;
+    }
+    isRunning = false;
+}
+
+function startTimer() {
+    if (isRunning) return;
+    isRunning = true;
+    statusText.textContent = 'Session de concentration en cours...';
+    timer = setInterval(() => {
+        if (totalSeconds > 0) {
+            totalSeconds -= 1;
+            updateDisplay();
+        } else {
+            stopTimer();
+            statusText.textContent = 'Temps écoulé ! Vous pouvez prendre une pause.';
+            playAlarm();
+            alert('Session Pomodoro terminée !');
+        }
+    }, 1000);
+}
+
+startButton.addEventListener('click', startTimer);
+pauseButton.addEventListener('click', () => {
+    stopTimer();
+    statusText.textContent = 'Pause. Reprenez quand vous êtes prêt.';
+});
+resetButton.addEventListener('click', () => {
+    stopTimer();
+    totalSeconds = 25 * 60;
+    updateDisplay();
+    statusText.textContent = 'Prêt pour une session de concentration.';
+});
+
+updateDisplay();
+</script>
+{% endblock %}

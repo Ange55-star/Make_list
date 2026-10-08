@@ -1,44 +1,46 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Ce conteneur force le centrage absolu sur l'écran -->
-<div class="flex justify-center items-center min-h-[80vh] w-full">
-
-    <div class="w-full max-w-xl bg-base-100 p-6 rounded-2xl shadow-xl">
-        <h2 class="text-xl font-bold mb-4 text-primary">➕ Créer une nouvelle tâche</h2>
-
-        <form method="POST" action="{% url 'add_task' %}" class="space-y-4">
-            {% csrf_token %}
-
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text font-semibold">Titre de la tâche</span>
-                </label>
-                {{ form.title }}
-            </div>
-
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text font-semibold">Description (Optionnelle)</span>
-                </label>
-                {{ form.description }}
-            </div>
-
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text font-semibold">Date et heure de l'alarme</span>
-                </label>
-                {{ form.due_date }}
-            </div>
-
-            <div class="form-control flex flex-row items-center gap-3 py-2">
-                {{ form.completed }}
-                <span class="label-text font-semibold">Marquer comme terminée</span>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-full mt-4">Ajouter la tâche</button>
-        </form>
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-wide text-indigo-600 font-semibold">Gestion des tâches</p>
+            <h1 class="text-3xl font-bold">Mes tâches</h1>
+        </div>
+        <a href="{% url 'task_create' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-500">+ Ajouter</a>
     </div>
 
+    <div class="bg-white rounded-2xl shadow p-6">
+        {% if tasks %}
+            <div class="space-y-4">
+                {% for task in tasks %}
+                    <div class="border rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <h2 class="text-xl font-semibold">{{ task.title }}</h2>
+                                {% if task.completed %}
+                                    <span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-semibold">Terminée</span>
+                                {% else %}
+                                    <span class="bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-semibold">À faire</span>
+                                {% endif %}
+                            </div>
+                            {% if task.description %}
+                                <p class="text-slate-600 mt-1">{{ task.description }}</p>
+                            {% endif %}
+                            {% if task.due_date %}
+                                <p class="text-sm text-slate-500 mt-2">Échéance : {{ task.due_date|date:"d/m/Y H:i" }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'task_update' task.id %}" class="bg-slate-200 px-3 py-2 rounded-lg text-sm hover:bg-slate-300">Modifier</a>
+                            <a href="{% url 'task_delete' task.id %}" class="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-400">Supprimer</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-slate-500">Aucune tâche pour le moment. Ajoute ta première tâche.</div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
